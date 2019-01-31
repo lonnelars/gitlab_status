@@ -1,0 +1,3 @@
+(executable
+  (name gitlab_status)
+  (libraries core async_ssl uri yojson cohttp.async))
