@@ -1,3 +1,6 @@
+(env
+  (dev (flags (:standard -w)))
+  (release (flags (:standard -ccopt -static))))
 (executable
   (name gitlab_status)
   (libraries core async_ssl uri yojson cohttp.async))

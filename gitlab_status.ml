@@ -51,9 +51,7 @@ let parse_json string =
       | _ -> Error "Encountered an unexpected json value in the list")
   in
   match Yojson.Basic.from_string string with
-  | `List list ->
-      List.fold ~init:(Result.Ok [])
-        ~f:accumulator list
+  | `List list -> List.fold ~init:(Result.Ok []) ~f:accumulator list
   | _ -> Result.Error "Expected the json data to be a list of events"
 
 let find_latest_event parse_result =
