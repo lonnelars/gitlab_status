@@ -1,8 +1,6 @@
 open Core
 open Async
 
-exception Missing_variables of string
-
 type gitlab_event = {id: int; status: string}
 
 let usage =
@@ -16,20 +14,9 @@ PRIVATE_TOKEN
 must be set before running the program.
 |}
 
-let die () = raise (Missing_variables usage)
+let getenv variable = Sys.getenv variable
 
-let getenv variable =
-  match Sys.getenv variable with
-  | Some value -> value
-  | None -> print_endline usage ; die ()
-
-let gitlab_uri = getenv "GITLAB_URI"
-
-let project_id = getenv "PROJECT_ID"
-
-let private_token = getenv "PRIVATE_TOKEN"
-
-let query_uri =
+let query_uri gitlab_uri project_id private_token =
   let base_uri =
     Uri.of_string
       (gitlab_uri ^ "/api/v4/projects/" ^ project_id ^ "/pipelines?ref=master")
@@ -68,18 +55,25 @@ let find_latest_event parse_result =
            events is empty?")
 
 let main () =
-  Cohttp_async.Client.get query_uri
-  >>= (fun (_, body) -> Cohttp_async.Body.to_string body)
-  >>| parse_json >>| find_latest_event
-  >>= fun result ->
-  match result with
-  | Error message ->
-      prerr_endline ("Something went wrong: " ^ message) ;
-      exit 1
-  | Ok event ->
-      print_endline
-        ("id: " ^ string_of_int event.id ^ ", status: " ^ event.status) ;
-      exit 0
+  let gitlab_uri = getenv "GITLAB_URI" in
+  let project_id = getenv "PROJECT_ID" in
+  let private_token = getenv "PRIVATE_TOKEN" in
+  match (gitlab_uri, project_id, private_token) with
+  | Some g, Some p, Some pri -> (
+      let query_uri = query_uri g p pri in
+      Cohttp_async.Client.get query_uri
+      >>= (fun (_, body) -> Cohttp_async.Body.to_string body)
+      >>| parse_json >>| find_latest_event
+      >>= fun result ->
+      match result with
+      | Error message ->
+          prerr_endline ("Something went wrong: " ^ message) ;
+          exit 1
+      | Ok event ->
+          print_endline
+            ("id: " ^ string_of_int event.id ^ ", status: " ^ event.status) ;
+          exit 0 )
+  | _ -> prerr_endline usage ; exit 1
 
 let () =
   Command.async_spec ~summary:"Retrieve pipeline status from gitlab"
