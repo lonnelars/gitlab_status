@@ -54,13 +54,21 @@ let find_latest_event parse_result =
           "Failed when trying to find the latest event. Maybe the list of \
            events is empty?")
 
+type config = {gitlab_uri: string; project_id: string; private_token: string}
+
 let main () =
-  let gitlab_uri = getenv "GITLAB_URI" in
-  let project_id = getenv "PROJECT_ID" in
-  let private_token = getenv "PRIVATE_TOKEN" in
-  match (gitlab_uri, project_id, private_token) with
-  | Some g, Some p, Some pri -> (
-      let query_uri = query_uri g p pri in
+  let config =
+    Option.(
+      Sys.getenv "GITLAB_URI"
+      >>= fun gitlab_uri ->
+      Sys.getenv "PROJECT_ID"
+      >>= fun project_id ->
+      Sys.getenv "PRIVATE_TOKEN"
+      >>= fun private_token -> return {gitlab_uri; project_id; private_token})
+  in
+  match config with
+  | Some {gitlab_uri; project_id; private_token} -> (
+      let query_uri = query_uri gitlab_uri project_id private_token in
       Cohttp_async.Client.get query_uri
       >>= (fun (_, body) -> Cohttp_async.Body.to_string body)
       >>| parse_json >>| find_latest_event
