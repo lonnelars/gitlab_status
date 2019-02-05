@@ -14,8 +14,6 @@ PRIVATE_TOKEN
 must be set before running the program.
 |}
 
-let getenv variable = Sys.getenv variable
-
 let query_uri gitlab_uri project_id private_token =
   let base_uri =
     Uri.of_string
